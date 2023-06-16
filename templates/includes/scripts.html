@@ -1,0 +1,436 @@
+﻿{% load static %}
+<!--   Core JS Files   -->
+<!--  Google Maps Plugin    -->
+<!-- Place this tag in your head or just before your close body tag. -->
+<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY_HERE"></script>
+<!-- Chart JS -->
+<script src="{% static 'assets/js/plugins/chartjs.min.js' %}"></script>
+<!--  Notifications Plugin    -->
+<script src="{% static 'assets/js/plugins/bootstrap-notify.js' %}"></script>
+<!-- Control Center for Black Dashboard: parallax effects, scripts for the example pages etc -->
+<script src="{% static 'assets/js/black-dashboard.min.js' %}?v=1.0.0"></script>
+<!-- Black Dashboard DEMO methods, don't include it in your project! -->
+<!--<script src="{% static 'assets/demo/demo.js' %}"></script>-->
+<script src="{% static 'assets/js/themeSettings.js' %}"></script>
+
+<script>
+    let isActivate = false;
+    if (!isActivate) { 
+        $(document).ready(function () {
+            // Javascript method's body can be found in assets/js/demos.js
+            //demo.initDashboardPageCharts();
+//부동산 매물 시세 chart
+            let junse = {}
+            let wolse = {}
+            let meme = {}
+            let junse_location_count = {}
+            let wolse_location_count = {}
+            let meme_location_count = {}
+            let junse_location_count_before = {}
+            let wolse_location_count_before = {}
+            let meme_location_count_before = {}
+
+            {% for house in house_list %}
+            if ("{{ house.houseType }}" === "전세") {
+                if ("{{ house.address }}" in junse) {
+                    junse["{{ house.address }}"] += Number("{{ house.housePrice }}")
+                    junse_location_count["{{ house.address }}"] += 1
+                }
+                else {
+                    junse["{{ house.address }}"] = Number("{{ house.housePrice }}")
+                    junse_location_count["{{ house.address }}"] = 1
+                }
+            }
+            else if ("{{ house.houseType }}" === "월세") {
+                if ("{{ house.address }}" in wolse) {
+                    wolse["{{ house.address }}"] += Number("{{ house.monthlyPrice }}")
+                    wolse_location_count["{{ house.address }}"] += 1
+                }
+                else {
+                    wolse["{{ house.address }}"] = Number("{{ house.monthlyPrice }}")
+                    wolse_location_count["{{ house.address }}"] = 1
+                }
+            }
+            else {
+                if ("{{ house.address }}" in meme) {
+                    meme["{{ house.address }}"] += Number("{{ house.memePrice }}")
+                    meme_location_count["{{ house.address }}"] += 1
+                }
+                else {
+                    meme["{{ house.address }}"] = Number("{{ house.memePrice }}")
+                    meme_location_count["{{ house.address }}"] = 1
+                }
+            }
+            {% endfor %}
+
+            {% for house in house_list_before %}
+            if ("{{ house.houseType }}" === "전세") {
+                if ("{{ house.address }}" in junse_location_count_before) {
+                    junse_location_count_before["{{ house.address }}"] += 1
+                }
+                else {
+                    junse_location_count_before["{{ house.address }}"] = 1
+                }
+            }
+            else if ("{{ house.houseType }}" === "월세") {
+                if ("{{ house.address }}" in wolse_location_count_before) {
+                    wolse_location_count_before["{{ house.address }}"] += 1
+                }
+                else {
+                    wolse_location_count_before["{{ house.address }}"] = 1
+                }
+            }
+            else {
+                if ("{{ house.address }}" in meme_location_count_before) {
+                    meme_location_count_before["{{ house.address }}"] += 1
+                }
+                else {
+                    meme_location_count_before["{{ house.address }}"] = 1
+                }
+            }
+            {% endfor %}
+
+            for (key in junse) {
+                if (key.slice(0, 3) === "경기도") {
+                    delete junse[key];
+                    delete junse_location_count[key];
+                }
+            }
+            for (key in wolse) {
+                if (key.slice(0, 3) === "경기도") {
+                    delete wolse[key];
+                    delete wolse_location_count[key];
+                }
+            }
+            for (key in meme) {
+                if (key.slice(0, 3) === "경기도") {
+                    delete meme[key];
+                    delete meme_location_count[key];
+                }
+            }
+
+            for (key in junse_location_count_before) {
+                if (key.slice(0, 3) === "경기도") {
+                    delete junse_location_count_before[key];
+                }
+            }
+            for (key in wolse_location_count_before) {
+                if (key.slice(0, 3) === "경기도") {
+                    delete wolse_location_count_before[key];
+                }
+            }
+            for (key in meme_location_count_before) {
+                if (key.slice(0, 3) === "경기도") {
+                    delete meme_location_count_before[key];
+                }
+            }
+
+            //각 지역별 전세, 월세, 매매 평균 구하기
+            for (key in junse) {
+                junse[key] = Math.round(junse[key] / junse_location_count[key]);
+            }
+            for (key in wolse) {
+                wolse[key] = Math.round(wolse[key] / wolse_location_count[key]);
+            }
+            for (key in meme) {
+                meme[key] = Math.round(meme[key] / meme_location_count[key]);
+            }
+
+            var chart_labels_junse = Object.keys(junse);
+            var chart_data_junse = Object.values(junse);
+            let chart_labels_wolse = Object.keys(wolse);
+            let chart_data_wolse = Object.values(wolse);
+            let chart_labels_meme = Object.keys(meme);
+            let chart_data_meme = Object.values(meme);
+
+    //chart 정보 가져오기
+            var ctx = document.getElementById("chartBig1").getContext('2d');
+            let name = document.getElementById("graph_name");
+            name.innerText = "전세 평균"
+
+            var myChartData = new Chart(ctx, { 
+                type: 'bar',
+                responsive: true,
+                legend: {
+                    display: false
+                },
+                data: {
+                    labels: chart_labels_junse,
+                    datasets: [{
+                        label: "전세 보증금 (만원)",
+                        fill: true,
+                        //backgroundColor: gradientStroke,
+                        //hoverBackgroundColor: gradientStroke,
+                        borderColor: '#1f8ef1',
+                        borderWidth: 3,
+                        borderDash: [],
+                        borderDashOffset: 0.0,
+                        data: chart_data_junse,
+                    }]
+                },
+                options: {
+                    scales: {
+                        xAxes: [{
+                            ticks: {
+                                autoSkip: false
+                            }
+                        }]
+                    }
+                }
+                //options: gradientBarChartConfiguration
+            });
+            //var myChartData = new Chart(ctx, config);
+            $("#0").click(function () {
+                name.innerText = "전세 평균"
+                var data = myChartData.config.data;
+                data.datasets[0].data = chart_data_junse;
+                data.labels = chart_labels_junse;
+                data.datasets[0].label = "전세 보증금 (만원)"
+                myChartData.update();
+            });
+            $("#1").click(function () {
+                name.innerText = "월세 평균"
+                var data = myChartData.config.data;
+                data.datasets[0].data = chart_data_wolse;
+                data.labels = chart_labels_wolse;
+                data.datasets[0].label = "월세금 (만원)"
+                myChartData.update();
+            });
+
+            $("#2").click(function () {
+                name.innerText = "매매 평균"
+                var data = myChartData.config.data;
+                data.datasets[0].data = chart_data_meme;
+                data.labels = chart_labels_meme;
+                data.datasets[0].label = "매매가 (만원)"
+                myChartData.update();
+            });
+
+
+            let house_address = [];
+            let select_address = document.querySelector("#select_address");
+            let address_option = document.createElement("option");
+            let location_name = document.getElementById("location_name");
+            let sidebar_name = document.getElementById("sidebarName");
+
+            {% for house in house_list %}
+            if (!(house_address.includes("{{ house.address }}"))) {
+                house_address.push("{{ house.address }}")
+            }
+            {% endfor %}
+
+            for (let i = 0; i < house_address.length; i++) {
+                if (house_address[i].slice(0, 3) === "경기도") {
+                    house_address.splice(i, 1);
+                }
+            }
+
+            for (let i = 0; i < house_address.length; i++) {
+                address_option.text = house_address[i];
+                address_option.value = house_address[i];
+                select_address.options.add(address_option);
+                address_option = document.createElement("option");
+            }
+
+            select_address.options[0].selected = true; 
+            location_name.innerText = $("#select_address option:selected").val();
+            sidebar_name.innerText = $("#select_address option:selected").val();
+
+            var ctx = document.getElementById("chartLinePurple").getContext("2d");
+//걸러진 매물 chart
+            var data = {
+                labels: ['전세', '월세', '매매'],
+                datasets: [
+                    {
+                        label: "걸러진 후 매물",
+                        backgroundColor: [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 205, 86)'
+                        ],
+                        hoverOffset: 4,
+                        data: [junse_location_count[location_name.innerText], wolse_location_count[location_name.innerText], meme_location_count[location_name.innerText]],
+                    },
+                    {
+                        label: "총 매물",
+                        backgroundColor: [
+                            'rgb(132, 99, 255)',
+                            'rgb(235, 162, 54)',
+                            'rgb(86, 205, 255)'
+                        ],
+                        hoverOffset: 4,
+                        data: [junse_location_count_before[location_name.innerText], wolse_location_count_before[location_name.innerText], meme_location_count_before[location_name.innerText]],
+                    }
+                ]
+            };
+
+            var myChart = new Chart(ctx, {
+                type: 'horizontalBar',
+                responsive: true,
+                data: data,
+                options: {
+                    legend: {
+                        display: false
+                    },
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true
+                        }
+                    }
+                }
+                //options: gradientChartOptionsConfigurationWithTooltipPurple
+            });
+
+            $("#select_address").change(() => {
+                var selected_address = $("#select_address option:selected").val();
+            
+                    $.ajax({
+                        url: "houseListTable",
+                        data: {
+                          'selected_address': selected_address
+                        },
+                        dataType: 'json',
+                        success: function (data) {
+                            $("#houseTable tbody").empty(); // 테이블 비우기
+                            $.each(data.house_list, function(i, item) {
+                                if (item.jibun != '' ) { // jibun 값이 None인 경우를 제외하고 리스트에 추가
+                                    var $tr = $('<tr>').append(
+                                        $('<td>').text(item.address),
+                                        $('<td>').text(item.jibun),
+                                        $('<td>').text(item.houseType),
+                                        $('<td>').text(item.housePrice),
+                                        $('<td>').text(item.monthlyPrice),
+                                        $('<td>').text(item.memePrice),
+                                        $('<td>').text(item.agentName)
+                                    );
+                                    $("#houseTable tbody").append($tr);
+                                }
+                            });
+                        }
+                    });
+
+                location_name.innerText = $("#select_address option:selected").val();
+                sidebar_name.innerText = $("#select_address option:selected").val();
+                myChart.data.datasets[0].data = [junse_location_count[location_name.innerText], wolse_location_count[location_name.innerText], meme_location_count[location_name.innerText]];
+                myChart.data.datasets[1].data = [junse_location_count_before[location_name.innerText], wolse_location_count_before[location_name.innerText], meme_location_count_before[location_name.innerText]];
+                myChart.update();
+            })
+
+//지도 마커 표시
+            var latitude = 37.5733557020061
+            var longitude = 127.08281348243
+            let map = L.map('map').setView([latitude, longitude], 14);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            let house_data = {};
+
+            {% for house in house_list %}
+                house_data["{{ house.jibun }}"] = {
+                    "address": "{{ house.address }}",
+                    "jibun": "{{ house.jibun }}",
+                    "info": "---------- 매물 정보 ----------",
+                    "준공 허가 날짜": "{{ house.jungong }}",
+                    "층 위치": "{{ house.floors }}",
+                    "최근 업데이트 날짜": "{{ house.currentlyUpdate }}",
+                    "최초 게시 날짜": "{{ house.firstUpdate }}",
+                    "추천 여부": "{{ house.recommend }}",
+                    "공인중개사": "{{ house.agentName }}",
+                    "공인중개사 주소": "{{ house.agentAddress }}",
+                    "agentNumber": "{{ house.agentNumber }}",
+                    "line": "------- 가격 예측 비교 --------",
+                    "매물 구분": "{{ house.houseType }}",
+                    "보증금": "{{ house.housePrice }}",
+                    "월세 금액": "{{ house.monthlyPrice }}",
+                    "매매가":"{{ house.memePrice }}",
+                    "latitude": {{ house.latitude }},
+                    "longitude": {{house.longtitude}}
+                };
+            {% endfor %}
+
+            // when table cell clicked, get info
+            $(document).on('click', '#houseTable', function (event) {
+                let target = event.target;
+                while (target && target.nodeName !== "TR") {
+                    target = target.parentNode;
+                }
+                if (target) {
+                    let jibun = target.cells[1].innerText;
+                    let houseInfo = house_data[jibun]; // Get house info by jibun from dictionary
+
+
+                    if (houseInfo) {
+                        latitude = houseInfo["latitude"]; // Get latitude
+                        longitude = houseInfo["longitude"]; // Get longitude
+
+                        // Remove previous marker
+                        if (window.marker) map.removeLayer(window.marker);
+
+                        // Create marker on map
+                        window.marker = L.marker([latitude, longitude]).addTo(map);
+
+                        // Add a popup to the marker
+                        let popupContent = `<b>${jibun}</b>`;
+
+                        let info = event.target.offsetParent.innerText.split("\t");
+        
+                        $.ajax({
+                            type: "Post",
+                            url: "accessDB",
+                            data: JSON.stringify(info),
+                            success: function (json) {
+                                console.log(json)
+                                for (let key in json){
+                                    if(key !== "latitude" && key !== "longtitude" && key !== "house_type"){
+                                        console.log(key)
+                                        console.log(json[key])
+                                        popupContent += `<br><b>${key} :</b> ${Math.floor(json[key])}`;
+                                        console.log(popupContent)
+                                    }
+                                }
+                                window.marker.bindPopup(popupContent).openPopup();
+
+                                map.setView(new L.LatLng(latitude, longitude), 17);
+                            },
+
+                            error: function (xhr, errmsg, err) {
+                                console.log(xhr.status + ": " + xhr.responseText);
+                            }
+                        })
+
+                        for (let key in houseInfo) {
+                            if(key !== "address" && key !== "jibun" && key !== "agentNumber"&& key !== "latitude" && key !== "longitude"&& key !== "추천 여부"){
+                                if (houseInfo[key] !== 'None'){
+                                    if (key == "line" || key == "info"){
+                                        popupContent += `<br><br>${houseInfo[key]}<br>`;
+                                    }
+                                    else{
+                                        popupContent += `<br><b>${key} :</b> ${houseInfo[key]}`;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        console.log("No coordinates found for this address.")
+                    }
+                }
+            })
+
+            isActivated = true;
+        });
+    };
+</script>
+<script src="https://cdn.trackjs.com/agent/v3/latest/t.js"></script>
+<script>
+    window.TrackJS &&
+        TrackJS.install({
+            token: "ee6fab19c5a04ac1a32a645abde4613a",
+            application: "black-dashboard-free"
+        });
+</script>
